@@ -22,4 +22,19 @@ class Task extends Model
         'status' => TaskStatus::class,
         'due_date' => 'date',
     ];
+
+    public function assignee()
+    {
+        return $this->belongsTo(User::class, 'assignee_id');
+    }
+
+    public function dependencies()
+    {
+        return $this->belongsToMany(Task::class, 'task_dependencies', 'task_id', 'depends_on_task_id');
+    }
+
+    public function dependents()
+    {
+        return $this->belongsToMany(Task::class, 'task_dependencies', 'depends_on_task_id', 'task_id');
+    }
 }
