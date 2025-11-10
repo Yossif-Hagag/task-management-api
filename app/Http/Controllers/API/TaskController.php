@@ -59,14 +59,20 @@ class TaskController extends Controller
         }
     }
 
-    public function show(Task $task)
+    public function show($id)
     {
         try {
+            $task = Task::with(['assignee', 'dependencies'])->find($id);
+
+            if (! $task) {
+                return $this->apiResponse(null, Response::HTTP_NOT_FOUND, 'Task not found');
+            }
+
             if (Auth::user()->isUser() && $task->assignee_id !== Auth::id()) {
                 return $this->apiResponse(null, Response::HTTP_FORBIDDEN, 'Unauthorized');
             }
 
-            return $this->apiResponse($task->with('assignee', 'dependencies'), Response::HTTP_OK, 'Task fetched successfully');
+            return $this->apiResponse($task, Response::HTTP_OK, 'Task fetched successfully');
 
         } catch (Exception $e) {
             return $this->apiResponse(null, Response::HTTP_INTERNAL_SERVER_ERROR, $e->getMessage());
@@ -96,7 +102,7 @@ class TaskController extends Controller
                 $task->dependencies()->sync($validated['dependencies']);
             }
 
-            return $this->apiResponse($task->with('dependencies'), Response::HTTP_CREATED, 'Task Created Successfuly');
+            return $this->apiResponse($task->load('dependencies'), Response::HTTP_CREATED, 'Task Created Successfully');
 
         } catch (ValidationException $e) {
             return $this->apiResponse($e->errors(), Response::HTTP_UNPROCESSABLE_ENTITY, 'Validation failed.');
@@ -105,10 +111,15 @@ class TaskController extends Controller
         }
     }
 
-    public function update(Request $request, Task $task)
+    public function update(Request $request, $id)
     {
         try {
             $user = Auth::user();
+            $task = Task::find($id);
+
+            if(! $task) {
+                return $this->apiResponse(null, Response::HTTP_NOT_FOUND, 'Task not found');
+            }
 
             if ($user->isUser() && $task->assignee_id !== $user->id) {
                 return $this->apiResponse(null, Response::HTTP_FORBIDDEN, 'Unauthorized');
@@ -148,7 +159,9 @@ class TaskController extends Controller
                 $task->dependencies()->sync($validated['dependencies']);
             }
 
-            return $this->apiResponse($task->with('dependencies'), Response::HTTP_OK, 'Task updated successfully');
+            $taskUpdated = Task::with(['assignee', 'dependencies'])->find($id);
+
+            return $this->apiResponse($taskUpdated, Response::HTTP_OK, 'Task updated successfully');
 
         } catch (ValidationException $e) {
             return $this->apiResponse($e->errors(), Response::HTTP_UNPROCESSABLE_ENTITY, 'Validation failed.');
